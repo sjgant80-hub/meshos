@@ -1,0 +1,13 @@
+{
+  "name": "MeshOS — the sovereign mesh",
+  "short_name": "MeshOS",
+  "description": "A serverless, local-first mesh node: your identity, your storage, your wire. No account, no server, no tracker.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0c0a09",
+  "theme_color": "#0c0a09",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

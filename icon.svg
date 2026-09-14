@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="24" fill="#0c0a09"/>
+  <!-- seven mesh nodes, one per ring prime, joined as a mesh (no center) -->
+  <g stroke="#8a6d1d" stroke-width="2" opacity="0.7">
+    <path d="M64 22 L97 41 L97 79 L64 106 L31 79 L31 41 Z" fill="none"/>
+    <path d="M64 22 L64 64 M97 41 L64 64 M97 79 L64 64 M64 106 L64 64 M31 79 L64 64 M31 41 L64 64" opacity="0.35"/>
+    <path d="M64 22 L97 79 M97 41 L64 106 M97 79 L31 79 M64 106 L31 41 M31 79 L64 22 M31 41 L97 41" opacity="0.2"/>
+  </g>
+  <g fill="#e6c35c">
+    <circle cx="64" cy="22" r="7"/>
+    <circle cx="97" cy="41" r="7"/>
+    <circle cx="97" cy="79" r="7"/>
+    <circle cx="64" cy="106" r="7"/>
+    <circle cx="31" cy="79" r="7"/>
+    <circle cx="31" cy="41" r="7"/>
+    <circle cx="64" cy="64" r="5" fill="#f5e6b3"/>
+  </g>
+</svg>
