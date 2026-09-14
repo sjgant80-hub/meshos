@@ -4,10 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MeshOS — a sovereign mesh in one file</title>
-<meta name="description" content="One installable PWA, no server: Ed25519 identity, a 7-ring state folded to one integer, a ~12-byte wire format, attenuating capability grants, a SHA-256 hash-chained witness, content-addressed local storage, and a pluggable transport router. Offline-first. No accounts. No platform.">
+<meta name="description" content="Private messages & sharing for your people — friend-to-friend over the internet, group chats that hop phone to phone, no account, no server for your messages. One installable PWA on a mutation-gated kernel: Ed25519 identity, a 7-ring state folded to one integer, a signed wire (~12-byte envelope plus signature), attenuating capability grants, a SHA-256 hash-chained witness.">
 <meta name="theme-color" content="#0a0a08">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta property="og:title" content="MeshOS — private messages for your people">
+<meta property="og:description" content="No account. No server for your messages. No one reading what you write. Free, installs in a tap — and after the first visit it works without internet.">
+<meta property="og:image" content="https://sjgant80-hub.github.io/meshos/icon-512.png">
+<meta property="og:url" content="https://sjgant80-hub.github.io/meshos/">
 <style>
   :root{
     --bg:#0a0a08; --panel:#12120e; --panel2:#181812; --line:#2a2a20;
@@ -65,17 +70,114 @@
   footer{margin-top:1.6rem;padding-top:.9rem;border-top:1px solid var(--line);color:var(--dim);font-size:.82rem}
   footer a{color:var(--accent)}
   .big{font:800 1.15rem var(--mono);color:var(--accent2)}
+  /* ── the friendly face ─────────────────────────────────────────────── */
+  #home{padding:2.2rem 0 1rem;text-align:center}
+  #home .hero-icon{width:104px;height:104px;border-radius:24px;box-shadow:0 8px 40px rgba(217,180,74,.18)}
+  #home h1{font-size:2rem;margin-top:.9rem}
+  #home .promise{color:var(--dim);font-size:1.05rem;max-width:30rem;margin:.5rem auto 1.4rem;line-height:1.5}
+  .xl{display:block;width:100%;max-width:24rem;margin:.5rem auto;padding:.95rem 1.2rem;font-size:1.05rem;border-radius:14px}
+  button.act.xl{font-weight:800}
+  .homestat{font-size:.9rem;color:var(--dim);min-height:1.2rem;margin:.3rem auto .6rem;max-width:26rem}
+  .homestat .good{font-weight:700}
+  .steps{max-width:24rem;margin:.6rem auto;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:.9rem 1.1rem;font-size:.95rem}
+  .steps li{margin:.45rem 0 .45rem 1.1rem}
+  #home h2{font-size:1.15rem;margin:2rem 0 .8rem}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(15rem,1fr));gap:.7rem;text-align:left}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:1rem 1.1rem}
+  .card .emo{font-size:1.5rem}
+  .card b{display:block;margin:.35rem 0 .25rem;font-size:.98rem}
+  .card p{color:var(--dim);font-size:.88rem;line-height:1.5}
+  .card p .true{color:var(--ink)}
+  .share-row{display:flex;gap:.6rem;flex-wrap:wrap;justify-content:center;margin:.4rem 0 .8rem}
+  .share-row button{flex:1 1 12rem;max-width:16rem;padding:.75rem .9rem;font-size:.95rem;border-radius:12px}
+  .qr-box{display:inline-block;background:#fff;border-radius:14px;padding:12px;margin:.6rem auto .2rem}
+  .qr-cap{color:var(--dim);font-size:.85rem;margin-bottom:.6rem}
+  .plain-note{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;padding:.8rem 1rem;color:var(--dim);font-size:.9rem;text-align:left;max-width:44rem;margin:1.6rem auto 0}
+  .plain-note strong{color:var(--ink)}
+  .toolkit-line{color:var(--dim);font-size:.85rem;margin-top:1.6rem}
+  .toolkit-line a{color:var(--accent);cursor:pointer}
+  /* the plumbing: hidden for humans, one toggle for tinkerers */
+  .msg .wire{display:none}
+  body.plumbing .msg .wire{display:block}
+  .plumb{display:none !important}
+  body.plumbing .plumb{display:revert !important}
+  body.plumbing .unplumb{display:none !important}
+  [hidden]{display:none !important}
+  .tabs button.home-btn{font-size:1.05rem;padding:.45rem .7rem}
+  @media (max-width:520px){ #home{padding-top:1.4rem} #home h1{font-size:1.7rem} }
 </style>
 </head>
 <body>
 <div class="wrap">
+
+<!-- ═══ the friendly face — everyone starts here ═══ -->
+<div id="home">
+  <img class="hero-icon" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjggMTI4Ij4KICA8cmVjdCB3aWR0aD0iMTI4IiBoZWlnaHQ9IjEyOCIgcng9IjI0IiBmaWxsPSIjMGMwYTA5Ii8+CiAgPCEtLSBzZXZlbiBtZXNoIG5vZGVzLCBvbmUgcGVyIHJpbmcgcHJpbWUsIGpvaW5lZCBhcyBhIG1lc2ggKG5vIGNlbnRlcikgLS0+CiAgPGcgc3Ryb2tlPSIjOGE2ZDFkIiBzdHJva2Utd2lkdGg9IjIiIG9wYWNpdHk9IjAuNyI+CiAgICA8cGF0aCBkPSJNNjQgMjIgTDk3IDQxIEw5NyA3OSBMNjQgMTA2IEwzMSA3OSBMMzEgNDEgWiIgZmlsbD0ibm9uZSIvPgogICAgPHBhdGggZD0iTTY0IDIyIEw2NCA2NCBNOTcgNDEgTDY0IDY0IE05NyA3OSBMNjQgNjQgTTY0IDEwNiBMNjQgNjQgTTMxIDc5IEw2NCA2NCBNMzEgNDEgTDY0IDY0IiBvcGFjaXR5PSIwLjM1Ii8+CiAgICA8cGF0aCBkPSJNNjQgMjIgTDk3IDc5IE05NyA0MSBMNjQgMTA2IE05NyA3OSBMMzEgNzkgTTY0IDEwNiBMMzEgNDEgTTMxIDc5IEw2NCAyMiBNMzEgNDEgTDk3IDQxIiBvcGFjaXR5PSIwLjIiLz4KICA8L2c+CiAgPGcgZmlsbD0iI2U2YzM1YyI+CiAgICA8Y2lyY2xlIGN4PSI2NCIgY3k9IjIyIiByPSI3Ii8+CiAgICA8Y2lyY2xlIGN4PSI5NyIgY3k9IjQxIiByPSI3Ii8+CiAgICA8Y2lyY2xlIGN4PSI5NyIgY3k9Ijc5IiByPSI3Ii8+CiAgICA8Y2lyY2xlIGN4PSI2NCIgY3k9IjEwNiIgcj0iNyIvPgogICAgPGNpcmNsZSBjeD0iMzEiIGN5PSI3OSIgcj0iNyIvPgogICAgPGNpcmNsZSBjeD0iMzEiIGN5PSI0MSIgcj0iNyIvPgogICAgPGNpcmNsZSBjeD0iNjQiIGN5PSI2NCIgcj0iNSIgZmlsbD0iI2Y1ZTZiMyIvPgogIDwvZz4KPC9zdmc+Cg==" alt="MeshOS" onerror="this.hidden=true">
+  <h1>MeshOS</h1>
+  <p class="promise">Private messages &amp; sharing for your people.<br>No account. No server for your messages.<br>No one reading what you write.</p>
+
+  <button class="act xl" id="btn-install">📲 Get the app — free</button>
+  <div class="homestat" id="install-stat"></div>
+  <div class="steps" id="ios-steps" hidden>
+    <b>On iPhone or iPad (Safari):</b>
+    <ol>
+      <li>Tap the <b>Share</b> button <span style="border:1px solid var(--line);border-radius:6px;padding:0 .35em">&#x2B06;&#xFE0E;</span> — at the bottom of the screen on iPhone, at the top by the address bar on iPad</li>
+      <li>Scroll down and tap <b>Add to Home Screen</b>, then <b>Add</b></li>
+      <li>Open MeshOS from your home screen once — after that, flight mode is fine</li>
+    </ol>
+  </div>
+  <button class="ghost xl" id="btn-open">Open MeshOS &rarr;</button>
+
+  <h2>Share it with your people</h2>
+  <p class="qr-cap">Point a phone camera at this — it opens MeshOS</p>
+  <div class="qr-box" id="qr-box"><canvas id="qr" width="220" height="220"></canvas></div>
+  <div class="share-row">
+    <button class="act" id="share-link">📤 Send the link</button>
+    <button class="ghost" id="share-copy">🔗 Copy the link</button>
+    <button class="ghost" id="share-file">💾 Save the app as a file</button>
+  </div>
+  <div class="homestat" id="share-stat"></div>
+
+  <h2>How it works</h2>
+  <div class="cards">
+    <div class="card"><span class="emo">🏠</span><b>It lives on your phone</b>
+      <p>Install it once and it's yours. It opens instantly, works with <span class="true">no signal at all</span>, and what you write stays on your device — not on a company's computer.</p></div>
+    <div class="card"><span class="emo">🔑</span><b>No account. No phone number.</b>
+      <p>The app makes a key on your phone — that key <span class="true">is</span> you. Nothing to sign up for, nothing to leak, nobody to sell your details to.</p></div>
+    <div class="card"><span class="emo">🤝</span><b>Friend to friend, no middleman</b>
+      <p>You connect straight to people you trust — your messages go phone-to-phone, encrypted, with <span class="true">no server between you</span>. Joining up is two codes swapped over anything you already use (WhatsApp, SMS, a note). Honest bit: that little dance is the price of having nobody in the middle.</p></div>
+    <div class="card"><span class="emo">📣</span><b>Group chats that hop</b>
+      <p>Make a group, share its name, coordinate. Messages hop phone-to-phone through the people between you — <span class="true">no group server to seize, no account to ban</span>. Honest bit: anyone connected who knows the group name is in, and people you link with can see your network address. Privacy from platforms — not invisibility.</p></div>
+    <div class="card"><span class="emo">🧾</span><b>It keeps receipts</b>
+      <p>MeshOS writes a diary where every entry is chained to the one before. Open the toolkit and tap <span class="true">verify the ledger</span> any time — a broken or edited chain shows up instantly.</p></div>
+  </div>
+
+  <h2>No internet? Still works.</h2>
+  <div class="cards">
+    <div class="card"><span class="emo">📶</span><b>Bluetooth · AirDrop · Quick Share</b>
+      <p id="bt-card"><span class="true">Save the app as a file</span> (button above) and send it phone-to-phone — the whole app travels in one file and runs the moment it arrives, no internet needed. To <span class="true">keep</span> messages on the new phone, open the link once when it's back online and install properly. Best between Androids and computers; iPhones are happier with the link.</p></div>
+    <div class="card"><span class="emo">🛰️</span><b>Starlink</b>
+      <p>Starlink is internet from space — so just open the link, and add MeshOS to your home screen while you're at it. It only needs the internet <span class="true">once</span>, to arrive. After that it works with the dish off — and friend links still work dish-on, straight across the internet.</p></div>
+    <div class="card"><span class="emo">📻</span><b>LoRa radio</b>
+      <p>Long-range radio needs a small gadget (an ESP32 bridge, about the size of a matchbox) — <span class="true">and the driver for it, which is the next build</span>. The rail is on the dashboard so you can see it's planned, not faked: we'd rather tell you that than light a fake lamp.</p></div>
+  </div>
+
+  <div class="plain-note"><strong>Straight talk:</strong> this is version 1, built for early friends and family. It hasn't been independently audited yet, so don't put state secrets in it. The app itself is handed to you by GitHub the first time — like picking up a leaflet from a shop: they can see you took one, never what you write with it. After that it runs entirely on your phone. People you connect with can see your network address — that's what a direct connection is. Privacy from platforms, not invisibility.</div>
+
+  <p class="toolkit-line">Curious how the machine actually works? <a id="open-toolkit" href="#" role="button">Open the toolkit</a> — the raw mesh console, for tinkerers.</p>
+</div>
+
+<!-- ═══ the console — the machine itself, behind the friendly face ═══ -->
+<div id="app" hidden>
 <header>
-  <h1>MeshOS <span class="hl">·</span> a sovereign mesh in one file</h1>
-  <p class="sub">No server. No account. No platform. Your identity is an Ed25519 key made on this device; your state is 7 rings folded to one integer; every message is a ~12-byte signed wire; every action lands on a SHA-256 witness chain anyone can verify. Installs as an app, works offline, exits with you.</p>
-  <div class="transports" id="transports"></div>
+  <h1>MeshOS</h1>
+  <p class="sub unplumb">Your messages. On your phone. No one in the middle.</p>
+  <p class="sub plumb">No server. No account. No platform. Your identity is a key made on this device; your state is 7 rings folded to one integer; every message is a signed wire (~12-byte envelope plus signature); every action lands on a SHA-256 witness chain anyone can check. Installs as an app, works offline, exits with you.</p>
+  <div class="transports plumb" id="transports"></div>
 </header>
 
 <div class="tabs" id="tabs">
+  <button class="home-btn" id="tab-home" title="back to the simple side">&#8962;</button>
   <button data-p="nodes" class="on">Nodes</button>
   <button data-p="messages">Messages</button>
   <button data-p="commons">Commons</button>
@@ -88,39 +190,51 @@
   <div class="panel">
     <h2 style="margin-top:0">Who's here</h2>
     <div class="list" id="peer-list"></div>
-    <h3>Add a peer</h3>
-    <div class="row">
-      <div><label>name</label><input type="text" id="peer-name" placeholder="ada"></div>
-      <div><label>public key (hex)</label><input type="text" id="peer-pub" placeholder="paste their pubkey"></div>
-      <div class="sm"><button class="act" id="peer-add">add peer</button></div>
+    <div class="plumb">
+      <h3>Pre-pin a friend's key (advanced)</h3>
+      <p class="dim" style="font-size:.82rem">Normally keys are learned on first hello (TOFU). Pre-pinning a name + public key here means a later hello claiming that name with a DIFFERENT key gets a fresh name instead of silently replacing your friend.</p>
+      <div class="row">
+        <div><label>name</label><input type="text" id="peer-name" placeholder="ada"></div>
+        <div><label>public key (hex)</label><input type="text" id="peer-pub" placeholder="paste their pubkey"></div>
+        <div class="sm"><button class="act" id="peer-add">pin key</button></div>
+      </div>
+      <div class="stat" id="peer-stat"></div>
     </div>
-    <div class="stat" id="peer-stat"></div>
   </div>
   <div class="panel">
-    <h3 style="margin-top:0">WebRTC — connect a real peer (no server: paste signalling)</h3>
+    <h2 style="margin-top:0">Connect a friend <span class="dim" style="font-size:.8rem">— direct, phone to phone, works across the internet</span></h2>
     <div class="row">
-      <div class="sm"><button class="ghost" id="rtc-offer">1 · create offer</button></div>
-      <div><label>offer / answer blob (copy to peer, paste theirs)</label><textarea id="rtc-blob" placeholder="offers and answers appear here — swap them with your peer over any channel"></textarea></div>
+      <div class="sm"><label>your name (what friends will see)</label><input type="text" id="my-name" maxlength="24" placeholder="pick a name"></div>
     </div>
+    <p class="dim" style="font-size:.88rem;margin:.5rem 0">One of you taps <b>Make an invite</b> and sends the code to the other over anything you already use (WhatsApp, SMS, email). The other pastes it below, taps <b>Use what's pasted</b>, and sends back the reply code it makes. Paste that reply back here, tap <b>Use what's pasted</b> — connected. Two pastes, no server.</p>
+    <textarea id="rtc-blob" placeholder="invite and reply codes appear here — swap them over any channel you already have"></textarea>
     <div class="row" style="margin-top:.4rem">
-      <div class="sm"><button class="ghost" id="rtc-accept">2 · accept pasted</button></div>
-      <div class="sm"><button class="ghost" id="rtc-finish">3 · finish (paste answer)</button></div>
-      <div><div class="stat" id="rtc-stat">no live peer connection</div></div>
+      <div class="sm"><button class="act" id="rtc-offer">Make an invite</button></div>
+      <div class="sm"><button class="ghost" id="rtc-use">Use what's pasted</button></div>
+      <div class="sm"><button class="ghost" id="rtc-copy">Copy the code</button></div>
     </div>
+    <div class="stat" id="rtc-stat">no live links yet</div>
   </div>
 </div>
 
 <div class="pane" id="p-messages">
   <div class="panel">
-    <h2 style="margin-top:0">Messages <span class="dim" style="font-size:.8rem">— one format, every transport</span></h2>
+    <h2 style="margin-top:0">Messages <span class="dim plumb" style="font-size:.8rem">— one format, every transport</span></h2>
     <div id="chat" style="max-height:320px;overflow:auto"></div>
+    <div id="chat-empty" class="dim" style="font-size:.9rem;padding:.4rem 0" hidden><b>echo</b> is a practice contact — it repeats whatever you send, so you can try things out. To message a real person, connect them on the <a id="goto-connect" style="color:var(--accent);cursor:pointer">Nodes tab</a> — you swap two codes and you're linked, phone to phone.</div>
     <div class="row" style="margin-top:.6rem">
       <div class="sm"><label>to</label><select id="msg-to"></select></div>
-      <div class="sm"><label>intent</label><select id="msg-intent"></select></div>
-      <div><label>payload</label><input type="text" id="msg-text" placeholder="say something"></div>
+      <div class="sm plumb"><label>intent</label><select id="msg-intent"></select></div>
+      <div><label>message</label><input type="text" id="msg-text" placeholder="say something"></div>
       <div class="sm"><button class="act" id="msg-send">send</button></div>
     </div>
     <div class="stat" id="msg-stat"></div>
+    <div class="row" style="margin-top:.7rem;align-items:center">
+      <div><label>groups — share a name, everyone connected who joins it can coordinate</label><div id="group-chips" style="padding:.3rem 0"></div></div>
+      <div class="sm"><input type="text" id="group-name" maxlength="32" placeholder="tuesday-market"></div>
+      <div class="sm"><button class="ghost" id="group-join">join / create</button></div>
+    </div>
+    <button class="ghost" id="plumbing-toggle" style="margin-top:.5rem">for tinkerers: show technical details</button>
   </div>
 </div>
 
@@ -138,7 +252,7 @@
 
 <div class="pane" id="p-economy">
   <div class="panel">
-    <h2 style="margin-top:0">Economy <span class="dim" style="font-size:.8rem">— conserved units, no minting</span></h2>
+    <h2 style="margin-top:0">Economy <span class="dim" style="font-size:.8rem">— a v1 self-attested ledger</span></h2>
     <div class="big" id="eco-balance">—</div>
     <div class="dim mono" id="eco-line"></div>
     <div class="row" style="margin-top:.6rem">
@@ -185,16 +299,394 @@
   </div>
 </div>
 
-<div class="note">
-  <strong>Honest limits (v1)</strong> — Bluetooth mesh (BitChat) is not reachable from a browser (Web Bluetooth cannot advertise; needs a native bridge). LoRa needs an ESP32 bridge over WebSerial — detected but nothing is connected until you plug one. WebRTC works today with paste-signalling (no server, some friction). A Reticulum JS port does not exist yet. The relay backhaul is off unless you point it at a relay you trust. Not audited — do not carry state secrets. The loopback echo node exists so every layer is testable right now on one device. v1 is for the technically-adjacent; the path to v2 is use, feedback, hardening.
+<div class="note unplumb">
+  <strong>Straight talk</strong> — version 1. Direct friend-to-friend links work today (two codes, no server). Messages travel encrypted between phones and stay on your phone. Not audited yet — don't put state secrets in it.
 </div>
+<div class="note plumb">
+  <strong>Honest limits (v1)</strong> — WebRTC links are real p2p (DTLS-encrypted DataChannels); a public STUN server (Google's) helps two phones find each other's addresses — it learns your IP:port pair, never your words; invite codes travel over whatever channel you already have. Group messages gossip hop-by-hop (ttl 2, dedup by envelope id): each hop re-signs its own wire, so inside a group, authorship is CLAIMED by the envelope, not proven (v2: inner signatures). Peers' IP addresses are visible to each other (that's what p2p means) — this is privacy from platforms, not anonymity. Bluetooth mesh (BitChat) is not reachable from a browser (Web Bluetooth cannot advertise; needs a native bridge). LoRa: WebSerial is detected but no driver is written yet — plugging in a bridge does nothing in v1. No Reticulum JS port exists. The relay backhaul is not built (the chip is an honest placeholder). The witness chain is tamper-EVIDENT, not tamper-proof — entries aren't signed and the chain has no external anchor yet (v2). The economy pane is a self-attested v1 ledger, not the gated kcc-mesh rail. Not audited. The loopback echo node exists so every layer is testable on one device.
+</div>
+</div><!-- /#app -->
 
 <footer>
-  <p>MIT · <a href="https://github.com/sjgant80-hub/meshos">source &amp; mutation gate</a> — the codec, capability lattice and witness chain are the gated <code>kernel.mjs</code> verbatim (injected, CI-diffed). Pure client-side: install it, cut the internet, it still works.</p>
+  <p>Free &amp; open · MIT · <a href="https://github.com/sjgant80-hub/meshos">source on GitHub</a><span class="plumb"> — the codec, capability lattice and witness chain are the gated <code>kernel.mjs</code> verbatim (injected, CI-diffed). Pure client-side: install it, cut the internet, it still works.</span></p>
 </footer>
 </div>
 
 <script type="module">
+// ⟦QR-BEGIN⟧ generated from qr.mjs by make-page.mjs — do not edit here
+const qrMatrix = (() => {
+// MeshOS — the QR organ. A spec-correct QR Code encoder (ISO/IEC 18004), byte mode, error
+// correction level M, versions 1..10 auto-selected by capacity. The full rail: mode + length +
+// data bit stream with terminator and 0xEC/0x11 pad bytes, Reed–Solomon ECC over GF(256) with
+// block interleaving, finder/separator/timing/alignment/dark function patterns, format info
+// (BCH 15,5 ^ 0x5412) in both homes, version info (BCH 18,6) for v7+, and all 8 data masks
+// scored by the four penalty rules — the cheapest mask wins. The matrix carries NO quiet zone;
+// a renderer adds the 4-module margin. No I/O here — pure and total: garbage in →
+// { ok:false, why }, never a throw.
+
+const isStr = (v) => typeof v === 'string';
+
+// ── error correction level M, versions 1..10: per-block ECC codewords + data codewords per block ─
+// (ISO/IEC 18004 table 9 — group-1 blocks first, then the one-codeword-longer group-2 blocks)
+const EC_M = Object.freeze([
+  Object.freeze({ ec: 10, blocks: Object.freeze([16]) }),                  // v1  · 26 codewords
+  Object.freeze({ ec: 16, blocks: Object.freeze([28]) }),                  // v2  · 44
+  Object.freeze({ ec: 26, blocks: Object.freeze([44]) }),                  // v3  · 70
+  Object.freeze({ ec: 18, blocks: Object.freeze([32, 32]) }),              // v4  · 100
+  Object.freeze({ ec: 24, blocks: Object.freeze([43, 43]) }),              // v5  · 134
+  Object.freeze({ ec: 16, blocks: Object.freeze([27, 27, 27, 27]) }),      // v6  · 172
+  Object.freeze({ ec: 18, blocks: Object.freeze([31, 31, 31, 31]) }),      // v7  · 196
+  Object.freeze({ ec: 22, blocks: Object.freeze([38, 38, 39, 39]) }),      // v8  · 242
+  Object.freeze({ ec: 22, blocks: Object.freeze([36, 36, 36, 37, 37]) }),  // v9  · 292
+  Object.freeze({ ec: 26, blocks: Object.freeze([43, 43, 43, 43, 44]) }),  // v10 · 346
+]);
+
+// alignment pattern centre coordinates per version (ISO/IEC 18004 annex E)
+const ALIGN = Object.freeze([
+  Object.freeze([]), Object.freeze([6, 18]), Object.freeze([6, 22]), Object.freeze([6, 26]),
+  Object.freeze([6, 30]), Object.freeze([6, 34]), Object.freeze([6, 22, 38]), Object.freeze([6, 24, 42]),
+  Object.freeze([6, 26, 46]), Object.freeze([6, 28, 50]),
+]);
+
+const MAX_VERSION = 10;
+const lengthBits = (version) => (version <= 9 ? 8 : 16);           // byte-mode count indicator width
+const dataCodewords = (version) => EC_M[version - 1].blocks.reduce((a, b) => a + b, 0);
+const byteCapacity = (version) =>
+  Math.floor((dataCodewords(version) * 8 - 4 - lengthBits(version)) / 8);
+
+// ── GF(256), primitive polynomial 0x11d — the field the ECC lives in ────────────────────────────
+const GF_EXP = new Uint8Array(510);
+const GF_LOG = new Uint8Array(256);
+{
+  let x = 1;
+  for (let i = 0; i < 255; i++) {
+    GF_EXP[i] = x;
+    GF_EXP[i + 255] = x;
+    GF_LOG[x] = i;
+    x <<= 1;
+    if (x & 0x100) x ^= 0x11d;
+  }
+}
+const gfMul = (a, b) => (a === 0 || b === 0 ? 0 : GF_EXP[GF_LOG[a] + GF_LOG[b]]);
+
+/** the degree-n Reed–Solomon generator polynomial ∏(x − α^i), i = 0..n−1, coefficients MSB first */
+function rsGenerator(degree) {
+  let g = [1];
+  for (let i = 0; i < degree; i++) {
+    const next = new Array(g.length + 1).fill(0);
+    for (let j = 0; j < g.length; j++) {
+      next[j] ^= g[j];                              // g(x) · x
+      next[j + 1] ^= gfMul(g[j], GF_EXP[i]);        // g(x) · α^i
+    }
+    g = next;
+  }
+  return g;
+}
+
+/** polynomial-division remainder: the ECC codewords for one block */
+function rsRemainder(data, generator) {
+  const degree = generator.length - 1;
+  const buf = new Uint8Array(data.length + degree);
+  buf.set(data);
+  for (let i = 0; i < data.length; i++) {
+    const factor = buf[i];
+    if (factor === 0) continue;
+    for (let j = 1; j < generator.length; j++) buf[i + j] ^= gfMul(generator[j], factor);
+  }
+  return buf.slice(data.length);
+}
+
+// ── the bit stream: mode + count + data, terminator, byte padding, 0xEC/0x11 pads ───────────────
+function buildCodewords(bytes, version) {
+  const dcw = dataCodewords(version);
+  const capacityBits = dcw * 8;
+  const bits = [];
+  const push = (value, count) => {
+    for (let i = count - 1; i >= 0; i--) bits.push((value >>> i) & 1);
+  };
+  push(0b0100, 4);                              // byte mode
+  push(bytes.length, lengthBits(version));      // character (byte) count
+  for (const b of bytes) push(b, 8);
+  const terminator = Math.min(4, capacityBits - bits.length);
+  push(0, terminator);
+  if (bits.length % 8 !== 0) push(0, 8 - (bits.length % 8));
+  const codewords = new Uint8Array(dcw);
+  for (let i = 0; i < bits.length; i += 8) {
+    let b = 0;
+    for (let j = 0; j < 8; j++) b = (b << 1) | bits[i + j];
+    codewords[i >> 3] = b;
+  }
+  const pads = [0xec, 0x11];
+  for (let i = bits.length >> 3, p = 0; i < dcw; i++, p = 1 - p) codewords[i] = pads[p];
+  return codewords;
+}
+
+/** split into ECC blocks, then interleave data columns and ECC columns — the transmitted order */
+function interleave(codewords, version) {
+  const { ec, blocks } = EC_M[version - 1];
+  const generator = rsGenerator(ec);
+  const dataBlocks = [];
+  const eccBlocks = [];
+  let at = 0;
+  for (const len of blocks) {
+    const block = codewords.slice(at, at + len);
+    at += len;
+    dataBlocks.push(block);
+    eccBlocks.push(rsRemainder(block, generator));
+  }
+  const out = new Uint8Array(codewords.length + ec * blocks.length);
+  let o = 0;
+  const longest = Math.max(...blocks);
+  for (let i = 0; i < longest; i++) {
+    for (const block of dataBlocks) if (i < block.length) out[o++] = block[i];
+  }
+  for (let i = 0; i < ec; i++) {
+    for (const block of eccBlocks) out[o++] = block[i];
+  }
+  return out;
+}
+
+// ── the matrix: function patterns first, then the zigzag data walk, then the cheapest mask ──────
+function placeFunctionPatterns(size, version) {
+  const modules = new Uint8Array(size * size);      // 1 = dark
+  const reserved = new Uint8Array(size * size);     // 1 = function/format/version — mask never touches
+  const set = (row, col, dark) => {
+    modules[row * size + col] = dark ? 1 : 0;
+    reserved[row * size + col] = 1;
+  };
+
+  // timing patterns — full row 6 and column 6; finders overwrite their ends below
+  for (let i = 0; i < size; i++) {
+    set(6, i, i % 2 === 0);
+    set(i, 6, i % 2 === 0);
+  }
+
+  // finder patterns + separators at three corners (dark unless at Chebyshev distance 2)
+  const finder = (top, left) => {
+    for (let dr = -1; dr <= 7; dr++) {
+      for (let dc = -1; dc <= 7; dc++) {
+        const row = top + dr, col = left + dc;
+        if (row < 0 || row >= size || col < 0 || col >= size) continue;
+        const cheb = Math.max(Math.abs(dr - 3), Math.abs(dc - 3));
+        set(row, col, cheb !== 2 && cheb !== 4);
+      }
+    }
+  };
+  finder(0, 0);
+  finder(0, size - 7);
+  finder(size - 7, 0);
+
+  // alignment patterns (skip the three finder corners; dark unless at Chebyshev distance 1)
+  const centres = ALIGN[version - 1];
+  const last = centres.length - 1;
+  for (let i = 0; i < centres.length; i++) {
+    for (let j = 0; j < centres.length; j++) {
+      if ((i === 0 && j === 0) || (i === 0 && j === last) || (i === last && j === 0)) continue;
+      for (let dr = -2; dr <= 2; dr++) {
+        for (let dc = -2; dc <= 2; dc++) {
+          set(centres[i] + dr, centres[j] + dc, Math.max(Math.abs(dr), Math.abs(dc)) !== 1);
+        }
+      }
+    }
+  }
+
+  // dark module + reserve both format-info homes (real bits land after the mask is chosen)
+  set(size - 8, 8, true);
+  for (let i = 0; i <= 8; i++) {
+    if (i !== 6) { reserved[8 * size + i] = 1; reserved[i * size + 8] = 1; }
+  }
+  for (let i = 0; i < 8; i++) {
+    reserved[8 * size + (size - 1 - i)] = 1;
+    reserved[(size - 1 - i) * size + 8] = 1;
+  }
+
+  // version information for v7+ — two 6×3 homes, bottom-left and top-right (mask-independent)
+  if (version >= 7) {
+    let rem = version;
+    for (let i = 0; i < 12; i++) rem = (rem << 1) ^ ((rem >>> 11) * 0x1f25);
+    const bits = (version << 12) | rem;               // 18 bits, BCH(18,6)
+    for (let i = 0; i < 18; i++) {
+      const bit = (bits >>> i) & 1;
+      const a = size - 11 + (i % 3);
+      const b = Math.floor(i / 3);
+      set(b, a, bit);
+      set(a, b, bit);
+    }
+  }
+
+  return { modules, reserved };
+}
+
+/** the zigzag walk: column pairs right to left (skipping timing column 6), alternating up/down */
+function placeData(modules, reserved, size, interleaved) {
+  const totalBits = interleaved.length * 8;           // remainder bits stay 0 — the spec's filler
+  let i = 0;
+  for (let right = size - 1; right >= 1; right -= 2) {
+    if (right === 6) right = 5;
+    for (let vert = 0; vert < size; vert++) {
+      for (let j = 0; j < 2; j++) {
+        const col = right - j;
+        const upward = ((right + 1) & 2) === 0;
+        const row = upward ? size - 1 - vert : vert;
+        if (reserved[row * size + col]) continue;
+        if (i < totalBits) modules[row * size + col] = (interleaved[i >> 3] >>> (7 - (i & 7))) & 1;
+        i++;
+      }
+    }
+  }
+}
+
+// the 8 mask conditions — a data module flips where its condition holds
+const MASKS = Object.freeze([
+  (r, c) => (r + c) % 2 === 0,
+  (r, c) => r % 2 === 0,
+  (r, c) => c % 3 === 0,
+  (r, c) => (r + c) % 3 === 0,
+  (r, c) => (Math.floor(r / 2) + Math.floor(c / 3)) % 2 === 0,
+  (r, c) => ((r * c) % 2) + ((r * c) % 3) === 0,
+  (r, c) => (((r * c) % 2) + ((r * c) % 3)) % 2 === 0,
+  (r, c) => (((r + c) % 2) + ((r * c) % 3)) % 2 === 0,
+]);
+
+function applyMask(modules, reserved, size, mask) {
+  const fn = MASKS[mask];
+  for (let r = 0; r < size; r++) {
+    for (let c = 0; c < size; c++) {
+      if (!reserved[r * size + c] && fn(r, c)) modules[r * size + c] ^= 1;
+    }
+  }
+}
+
+/** format info: 2 EC bits (M = 00) + 3 mask bits, BCH(15,5), ^ 0x5412 — written in BOTH homes */
+function writeFormat(modules, size, mask) {
+  const data = (0b00 << 3) | mask;                    // level M
+  let rem = data;
+  for (let i = 0; i < 10; i++) rem = (rem << 1) ^ ((rem >>> 9) * 0x537);
+  const bits = ((data << 10) | rem) ^ 0x5412;
+  const bit = (i) => (bits >>> i) & 1;
+  // first home, around the top-left finder
+  for (let i = 0; i <= 5; i++) modules[i * size + 8] = bit(i);
+  modules[7 * size + 8] = bit(6);
+  modules[8 * size + 8] = bit(7);
+  modules[8 * size + 7] = bit(8);
+  for (let i = 9; i < 15; i++) modules[8 * size + (14 - i)] = bit(i);
+  // second home, split along the bottom-left and top-right edges
+  for (let i = 0; i < 8; i++) modules[8 * size + (size - 1 - i)] = bit(i);
+  for (let i = 8; i < 15; i++) modules[(size - 15 + i) * size + 8] = bit(i);
+}
+
+// ── the four penalty rules (ISO/IEC 18004 §8.8.2) — the mask with the lowest total wins ─────────
+function penalty(modules, size) {
+  let score = 0;
+  const at = (r, c) => modules[r * size + c];
+
+  // rule 1: runs of 5+ same-coloured modules in a row or column → 3 + (length − 5)
+  for (let r = 0; r < size; r++) {
+    let runColor = at(r, 0), run = 1;
+    for (let c = 1; c < size; c++) {
+      if (at(r, c) === runColor) run++;
+      else { if (run >= 5) score += run - 2; runColor = at(r, c); run = 1; }
+    }
+    if (run >= 5) score += run - 2;
+  }
+  for (let c = 0; c < size; c++) {
+    let runColor = at(0, c), run = 1;
+    for (let r = 1; r < size; r++) {
+      if (at(r, c) === runColor) run++;
+      else { if (run >= 5) score += run - 2; runColor = at(r, c); run = 1; }
+    }
+    if (run >= 5) score += run - 2;
+  }
+
+  // rule 2: every 2×2 block of one colour → 3
+  for (let r = 0; r < size - 1; r++) {
+    for (let c = 0; c < size - 1; c++) {
+      const v = at(r, c);
+      if (v === at(r, c + 1) && v === at(r + 1, c) && v === at(r + 1, c + 1)) score += 3;
+    }
+  }
+
+  // rule 3: the finder-alike 1011101 with 0000 on either side, in a row or column → 40
+  const dark = [1, 0, 1, 1, 1, 0, 1];
+  const alike = (get, i) => {
+    for (let k = 0; k < 7; k++) if (get(i + k) !== dark[k]) return false;
+    return true;
+  };
+  const clear4 = (get, i, len) => {
+    if (i < 0 || i + 4 > len) return false;
+    for (let k = 0; k < 4; k++) if (get(i + k) !== 0) return false;
+    return true;
+  };
+  for (let r = 0; r < size; r++) {
+    const get = (c) => at(r, c);
+    for (let c = 0; c <= size - 7; c++) {
+      if (alike(get, c) && (clear4(get, c - 4, size) || clear4(get, c + 7, size))) score += 40;
+    }
+  }
+  for (let c = 0; c < size; c++) {
+    const get = (r) => at(r, c);
+    for (let r = 0; r <= size - 7; r++) {
+      if (alike(get, r) && (clear4(get, r - 4, size) || clear4(get, r + 7, size))) score += 40;
+    }
+  }
+
+  // rule 4: dark-module balance — 10 per 5% step away from 50%
+  let darkCount = 0;
+  for (let i = 0; i < size * size; i++) darkCount += modules[i];
+  const total = size * size;
+  score += Math.floor(Math.abs(darkCount * 100 - total * 50) / (total * 5)) * 10;
+  return score;
+}
+
+// ── the one export ──────────────────────────────────────────────────────────────────────────────
+/**
+ * qrMatrix(text) — the whole rail in one call. UTF-8 bytes of `text`, byte mode, level M,
+ * version 1..10 by capacity, best-of-8 mask. → { ok:true, size, version, modules } where
+ * `modules` is a row-major Uint8Array of size×size (1 = dark), quiet zone NOT included —
+ * or { ok:false, why } for a non-string or text beyond version 10's capacity.
+ */
+function qrMatrix(text) {
+  if (!isStr(text)) return { ok: false, why: 'qrMatrix takes a string' };
+  try {
+    const bytes = new TextEncoder().encode(text);
+    let version = 0;
+    for (let v = 1; v <= MAX_VERSION; v++) {
+      if (bytes.length <= byteCapacity(v)) { version = v; break; }
+    }
+    if (version === 0) {
+      return {
+        ok: false,
+        why: 'text is ' + bytes.length + ' bytes — beyond the ' + byteCapacity(MAX_VERSION) +
+          '-byte capacity of version ' + MAX_VERSION + ' at level M',
+      };
+    }
+
+    const size = 17 + 4 * version;
+    const interleaved = interleave(buildCodewords(bytes, version), version);
+    const { modules, reserved } = placeFunctionPatterns(size, version);
+    placeData(modules, reserved, size, interleaved);
+
+    // score all 8 masks on the complete symbol (format bits included) and keep the cheapest
+    let bestMask = 0;
+    let bestScore = Infinity;
+    for (let mask = 0; mask < 8; mask++) {
+      applyMask(modules, reserved, size, mask);
+      writeFormat(modules, size, mask);
+      const score = penalty(modules, size);
+      if (score < bestScore) { bestScore = score; bestMask = mask; }
+      applyMask(modules, reserved, size, mask);    // XOR is its own inverse — restore
+    }
+    applyMask(modules, reserved, size, bestMask);
+    writeFormat(modules, size, bestMask);
+
+    return { ok: true, size, version, modules };
+  } catch (e) {
+    return { ok: false, why: 'qr encoding failed: ' + (e && e.message ? e.message : String(e)) };
+  }
+}
+return qrMatrix;
+})();
+// ⟦QR-END⟧
 // ⟦KERNEL-BEGIN⟧ generated from kernel.mjs by make-page.mjs — do not edit here
 // MeshOS — the sovereign mesh kernel. The pure, gated core of a serverless local-first mesh:
 // a 7-ring state vector folded to one integer (a bijective primorial codec), a compact wire format
@@ -528,15 +1020,18 @@ function verifyLedger(chain) {
     });
     return dbP;
   }
-  const idbGet = async (store, key) => new Promise(async (res) => { const t = (await db()).transaction(store).objectStore(store).get(key); t.onsuccess = () => res(t.result); t.onerror = () => res(undefined); });
-  const idbSet = async (store, key, val) => new Promise(async (res) => { const t = (await db()).transaction(store, 'readwrite').objectStore(store).put(val, key); t.onsuccess = () => res(true); t.onerror = () => res(false); });
+  // total against hostile storage: private mode, file:// viewers — a failed store never hangs boot
+  const idbGet = async (store, key) => { try { const d = await db(); return await new Promise((res) => { const t = d.transaction(store).objectStore(store).get(key); t.onsuccess = () => res(t.result); t.onerror = () => res(undefined); }); } catch (e) { return undefined; } };
+  const idbSet = async (store, key, val) => { try { const d = await db(); return await new Promise((res) => { const t = d.transaction(store, 'readwrite').objectStore(store).put(val, key); t.onsuccess = () => res(true); t.onerror = () => res(false); }); } catch (e) { return false; } };
+  const lsGet = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+  const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
 
   // ── identity: Ed25519 first, honest ECDSA fallback ───────────────────────────
   const S = {  // app state
     algo: null, priv: null, pub: null, pubHex: '',
     rings: [3, 5, 8, 6, 4, 3, 2],
     chain: [], peers: {}, msgs: [], commons: [], eco: { balance: 0, log: [] },
-    grant: null, rtc: { pc: null, ch: null, role: null },
+    grant: null, links: {}, pendingLink: null, groups: [], seen: new Set(), gseq: 0, myName: '',
   };
 
   async function makeKeys() {
@@ -593,10 +1088,10 @@ function verifyLedger(chain) {
   // ── transports ──────────────────────────────────────────────────────────────
   const TRANSPORTS = [
     { id: 'ble', name: 'BitChat·BLE', status: () => 'bluetooth' in navigator ? 'part' : 'off', note: () => 'bluetooth' in navigator ? 'API present — browsers cannot advertise; needs a native bridge' : 'no Web Bluetooth in this browser' },
-    { id: 'lora', name: 'LoRa', status: () => 'serial' in navigator ? 'part' : 'off', note: () => 'serial' in navigator ? 'WebSerial ready — plug an ESP32+LoRa bridge' : 'no WebSerial in this browser' },
-    { id: 'rtc', name: 'WebRTC', status: () => S.rtc.ch && S.rtc.ch.readyState === 'open' ? 'on' : ('RTCPeerConnection' in window ? 'part' : 'off'), note: () => S.rtc.ch && S.rtc.ch.readyState === 'open' ? 'peer connected' : 'ready — paste-signal a peer on the Nodes tab' },
+    { id: 'lora', name: 'LoRa', status: () => 'serial' in navigator ? 'part' : 'off', note: () => 'serial' in navigator ? 'WebSerial present — the ESP32 driver is v2; plugging hardware in does nothing yet' : 'no WebSerial in this browser' },
+    { id: 'rtc', name: 'WebRTC', status: () => openLinks().length > 0 ? 'on' : ('RTCPeerConnection' in window ? 'part' : 'off'), note: () => openLinks().length > 0 ? openLinks().length + ' live link(s) — direct, p2p' : 'ready — swap invite codes on the Nodes tab (STUN helps you find each other; it never carries your words)' },
     { id: 'ret', name: 'Reticulum', status: () => 'off', note: () => 'no mature JS port yet (v2)' },
-    { id: 'relay', name: 'Relay', status: () => navigator.onLine ? 'part' : 'off', note: () => 'no relay configured (sovereign default: none)' },
+    { id: 'relay', name: 'Relay', status: () => 'off', note: () => 'not built yet (v2) — an honest placeholder, nothing to configure' },
     { id: 'loop', name: 'Loopback', status: () => 'on', note: () => 'the echo node — always available, proves the full path' },
   ];
   function renderTransports() {
@@ -606,60 +1101,154 @@ function verifyLedger(chain) {
     }).join('');
   }
 
-  // WebRTC with paste-signalling — no server
-  async function rtcCreate(role) {
-    const pc = new RTCPeerConnection({ iceServers: [] });
-    S.rtc.pc = pc; S.rtc.role = role;
-    pc.onicecandidate = (e) => { if (e.candidate === null) $('rtc-blob').value = JSON.stringify(pc.localDescription); };
-    if (role === 'offer') {
-      const ch = pc.createDataChannel('mesh');
-      wireChannel(ch);
-      await pc.setLocalDescription(await pc.createOffer());
-    }
-    pc.ondatachannel = (e) => wireChannel(e.channel);
-    return pc;
-  }
-  function wireChannel(ch) {
-    S.rtc.ch = ch;
-    ch.onopen = async () => {
-      $('rtc-stat').textContent = 'peer channel OPEN — sending hello';
-      renderTransports();
-      const hello = JSON.stringify({ name: 'me', pub: S.pubHex, algo: S.algo });
-      await sendWire('rtc-peer', 0x00, hello);
+  // ── WebRTC: REAL p2p over the internet — STUN for address discovery (disclosed in the honest
+  // limits), invite-code signalling over any channel you already have, MANY simultaneous links,
+  // never a server carrying your words.
+  const RTC_CONF = { iceServers: [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }] };
+  const randomId = () => { const b = new Uint8Array(4); crypto.getRandomValues(b); return [...b].map((x) => x.toString(16).padStart(2, '0')).join(''); };
+
+  function newLink(role) {
+    const pc = new RTCPeerConnection(RTC_CONF);
+    const link = { id: randomId(), pc, ch: null, name: null, role, open: false };
+    S.links[link.id] = link;
+    pc.onicecandidate = (e) => {
+      if (e.candidate === null && pc.localDescription) {
+        $('rtc-blob').value = JSON.stringify(pc.localDescription);
+        $('rtc-stat').textContent = role === 'offer'
+          ? 'Invite ready ✓ — tap Copy, send it to your friend over anything (WhatsApp, SMS, email), and paste their reply back here.'
+          : 'Reply ready ✓ — tap Copy and send it BACK to whoever invited you. You connect the moment they paste it.';
+      }
     };
-    ch.onclose = () => { $('rtc-stat').textContent = 'peer channel closed'; renderTransports(); };
-    ch.onmessage = (e) => receiveWire(String(e.data), 'rtc-peer');
+    pc.onconnectionstatechange = () => {
+      if (['failed', 'closed', 'disconnected'].includes(pc.connectionState) && link.open) {
+        link.open = false; renderTransports(); renderPeers();
+        $('rtc-stat').textContent = (link.name || 'a friend') + ' dropped off — make a fresh invite to reconnect';
+      }
+    };
+    pc.ondatachannel = (e) => wireChannel(link, e.channel);
+    return link;
   }
+  function wireChannel(link, ch) {
+    link.ch = ch;
+    ch.onopen = async () => {
+      link.open = true;
+      $('rtc-stat').textContent = 'Connected ✓';
+      renderTransports();
+      await sendHello(link);
+    };
+    ch.onclose = () => { link.open = false; renderTransports(); renderPeers(); };
+    ch.onmessage = (e) => receiveWire(String(e.data), link);
+  }
+  async function sendHello(link) {
+    const hello = JSON.stringify({ name: S.myName, pub: S.pubHex, algo: S.algo });
+    const bh = bloomHex(S.rings);
+    if (!bh.ok) return;
+    const sig = await signMsg(bh.hex, 0x00, hello);
+    const e = encodeWire({ rings: S.rings, intent: 0x00, payload: hello, sig });
+    if (e.ok && link.ch && link.ch.readyState === 'open') link.ch.send(e.wire);
+  }
+  async function makeInvite() {
+    const link = newLink('offer');
+    S.pendingLink = link;
+    wireChannel(link, link.pc.createDataChannel('mesh'));
+    $('rtc-stat').textContent = 'making your invite…';
+    await link.pc.setLocalDescription(await link.pc.createOffer());
+  }
+  async function usePasted() {
+    let desc = null;
+    try { desc = JSON.parse($('rtc-blob').value); } catch (e) {}
+    if (!desc || !desc.type) { $('rtc-stat').textContent = 'That doesn’t look like a code — paste the WHOLE thing, exactly as it was sent.'; return; }
+    try {
+      if (desc.type === 'offer') {
+        const link = newLink('answer');
+        S.pendingLink = link;
+        $('rtc-stat').textContent = 'making your reply…';
+        await link.pc.setRemoteDescription(desc);
+        await link.pc.setLocalDescription(await link.pc.createAnswer());
+      } else if (desc.type === 'answer') {
+        const link = S.pendingLink;
+        if (!link || link.role !== 'offer') { $('rtc-stat').textContent = 'Make an invite first — then paste the reply you get back.'; return; }
+        await link.pc.setRemoteDescription(desc);
+        $('rtc-stat').textContent = 'reply accepted — connecting…';
+      } else $('rtc-stat').textContent = 'That code isn’t an invite or a reply.';
+    } catch (e) { $('rtc-stat').textContent = 'That code didn’t take — codes are single-use; make a fresh invite and try again.'; }
+  }
+  const openLinks = () => Object.values(S.links).filter((l) => l.open && l.ch && l.ch.readyState === 'open');
+  const linkFor = (name) => openLinks().find((l) => l.name === name);
+  const trimSeen = () => { if (S.seen.size > 4000) S.seen = new Set([...S.seen].slice(-2000)); };
 
   // ── the router: one wire format, best available transport ───────────────────
-  async function sendWire(to, intent, payload) {
+  async function sendWire(to, intent, payload, meta) {
+    if (!S.priv) return { ok: false, why: 'starting up — one moment' };
     const bh = bloomHex(S.rings);
     if (!bh.ok) return { ok: false, why: bh.why };
     const sig = await signMsg(bh.hex, intent, payload);
     const e = encodeWire({ rings: S.rings, intent, payload, sig });
     if (!e.ok) return e;
     const addr = contentAddress(e.wire).address;
-    let via = 'loopback';
-    if (to === 'rtc-peer' && S.rtc.ch && S.rtc.ch.readyState === 'open') { S.rtc.ch.send(e.wire); via = 'webrtc'; }
-    else if (to === 'echo' || to === 'rtc-peer') { setTimeout(() => receiveWire(e.wire, 'echo', true), 30); via = 'loopback'; }
-    S.msgs.push({ dir: 'out', to, intent, payload, wire: e.wire, via, addr });
+    let via;
+    if (to === 'echo') { setTimeout(() => receiveWire(e.wire, null, true), 30); via = 'loopback'; }
+    else if (to === '*') {
+      const ls = openLinks();
+      if (ls.length === 0) return { ok: false, why: 'no one is connected yet — connect a friend first (Nodes tab)' };
+      for (const l of ls) l.ch.send(e.wire);
+      via = 'webrtc ×' + ls.length;
+    } else {
+      const l = linkFor(to);
+      if (!l) return { ok: false, why: to + ' is not connected right now — send a fresh invite from the Nodes tab' };
+      l.ch.send(e.wire);
+      via = 'webrtc';
+    }
+    S.msgs.push({ dir: 'out', to: (meta && meta.to) || to, intent, payload: (meta && meta.display) || payload, group: meta && meta.group, wire: e.wire, via, addr });
     await idbSet('messages', 'log', S.msgs);
-    await witness({ act: 'send', to, via, intent, addr });
+    await witness({ act: 'send', to: (meta && meta.to) || to, via, intent, addr });
     renderChat();
     return { ok: true, wire: e.wire, via };
   }
 
-  async function receiveWire(wire, from, selfSigned) {
+  /** a group message travels as a signed wire whose payload is a tiny envelope; every hop
+   *  re-signs its own wire, dedups by envelope id, and passes it on while ttl holds. */
+  async function sendGroup(g, text) {
+    if (!text) return { ok: false, why: 'Type a message first' };
+    const idh = contentAddress(g + '|' + text + '|' + S.pubHex + '|' + (S.gseq++) + '|' + randomId()).address.slice(0, 16);
+    S.seen.add(idh); trimSeen();
+    const env = JSON.stringify({ mg: 1, g, id: idh, ttl: 2, from: S.myName, t: text });
+    return sendWire('*', 0x01, env, { group: g, display: text, to: '#' + g });
+  }
+
+  async function receiveWire(wire, link, selfSigned) {
+    const from = selfSigned ? 'echo' : (link && link.name) || 'new link';
     const d = decodeWire(wire);
     if (!d.ok) { await witness({ act: 'refused', from, why: d.why }); renderChat(); return; }
     const bh = bloomHex(d.rings);
-    const senderPub = selfSigned ? S.pubHex : (S.peers[from] && S.peers[from].pub) || S.pubHex;
-    const senderAlgo = selfSigned ? S.algo : (S.peers[from] && S.peers[from].algo) || S.algo;
-    const okSig = await verifyMsg(senderPub, senderAlgo, bh.hex, d.intent, d.payload, d.sig);
     const iname = intentName(d.intent).name;
+
+    // hello: TRUST ON FIRST USE — the hello carries its own key, so verify against THAT key,
+    // then learn it. Every later message from this link is checked against the learned key.
+    if (!selfSigned && link && d.intent === 0x00 && d.payload) {
+      let p = null;
+      try { p = JSON.parse(d.payload); } catch (e) {}
+      if (!p || typeof p.pub !== 'string' || !/^[0-9a-f]{20,}$/.test(p.pub)) { await witness({ act: 'refused', from, why: 'malformed hello' }); return; }
+      const okHello = await verifyMsg(p.pub, p.algo || 'Ed25519', bh.hex, d.intent, d.payload, d.sig);
+      if (!okHello) { await witness({ act: 'refused', from, why: 'hello signature does not match its own key' }); return; }
+      let name = String(p.name || 'friend').replace(/[^\w\- ]/g, '').slice(0, 24) || 'friend';
+      while (S.peers[name] && S.peers[name].pub !== p.pub) name += '~';
+      const existing = S.peers[name];
+      S.peers[name] = { name, pub: p.pub, algo: p.algo || 'Ed25519', rings: d.rings, grant: (existing && existing.grant) || makeGrant(name, ['hello', 'message', 'ack', 'ping', 'share', 'receipt'], 1000).grant };
+      link.name = name;
+      await idbSet('peers', 'all', S.peers);
+      await witness({ act: 'hello', who: name, pub: p.pub.slice(0, 16) });
+      S.msgs.push({ dir: 'in', from: name, intent: 0, payload: name + ' connected ✓', system: true, wire });
+      await idbSet('messages', 'log', S.msgs);
+      renderPeers(); renderTransports(); renderChat();
+      return;
+    }
+
+    const peer = selfSigned ? S.peers.echo : (link && link.name ? S.peers[link.name] : null);
+    if (!peer || !peer.pub) { await witness({ act: 'refused', from, why: 'no hello yet — sender key unknown' }); renderChat(); return; }
+    const okSig = await verifyMsg(selfSigned ? S.pubHex : peer.pub, selfSigned ? S.algo : peer.algo, bh.hex, d.intent, d.payload, d.sig);
     // capability: the sender's grant (held locally) must cover this intent — fail-safe refuse; a refusal charges 0
-    const g = (S.peers[from] && S.peers[from].grant) || S.grant;
-    const may = charge(g, iname, 1);
+    const may = charge(peer.grant, iname, 1);
     if (!okSig || !may.ok || !may.allowed) {
       const why = !okSig ? 'signature failed' : may.why;
       S.msgs.push({ dir: 'in', from, intent: d.intent, payload: d.payload, wire, refused: why });
@@ -669,12 +1258,40 @@ function verifyLedger(chain) {
       return;
     }
     // the action was allowed — the charge is REAL: persist the depleted grant, not a label
-    if (S.peers[from] && S.peers[from].grant === g) { S.peers[from].grant = may.grant; await idbSet('peers', 'all', S.peers); }
-    else if (S.grant === g) S.grant = may.grant;
-    if (d.intent === 0x00 && d.payload) {   // hello: learn the peer's key
-      try { const p = JSON.parse(d.payload); if (p.pub) { S.peers[from] = { name: p.name || from, pub: p.pub, algo: p.algo || 'Ed25519', rings: d.rings, grant: makeGrant(from, ['hello', 'message', 'ack', 'ping', 'share', 'receipt'], 1000).grant }; await idbSet('peers', 'all', S.peers); renderPeers(); } } catch (e) {}
+    peer.grant = may.grant;
+    peer.rings = d.rings;
+    await idbSet('peers', 'all', S.peers);
+
+    // group envelope? dedup, show if it's one of ours, gossip it onward while ttl holds
+    let env = null;
+    if (d.payload) { try { const j = JSON.parse(d.payload); if (j && j.mg === 1 && typeof j.g === 'string' && typeof j.t === 'string' && typeof j.id === 'string') env = j; } catch (e) {} }
+    if (env && !selfSigned) {
+      if (S.seen.has(env.id)) return;
+      S.seen.add(env.id); trimSeen();
+      const mine = S.groups.includes(env.g);
+      if (mine) {
+        S.msgs.push({ dir: 'in', from: String(env.from || from).slice(0, 24), via: from, group: env.g, intent: d.intent, payload: String(env.t).slice(0, 4096), wire, addr: contentAddress(wire).address });
+        await idbSet('messages', 'log', S.msgs);
+        await witness({ act: 'recv-group', g: env.g, id: env.id, hop: from });
+      }
+      const ttl = Number(env.ttl) || 0;
+      if (ttl > 0) {
+        const fwd = JSON.stringify({ ...env, ttl: ttl - 1 });
+        const bh2 = bloomHex(S.rings);
+        if (bh2.ok) {
+          const sig2 = await signMsg(bh2.hex, 0x01, fwd);
+          const e2 = encodeWire({ rings: S.rings, intent: 0x01, payload: fwd, sig: sig2 });
+          if (e2.ok) {
+            let hops = 0;
+            for (const l of openLinks()) if (l !== link) { l.ch.send(e2.wire); hops++; }
+            if (hops > 0) await witness({ act: 'relay', g: env.g, id: env.id, to: hops });
+          }
+        }
+      }
+      renderChat();
+      return;
     }
-    if (S.peers[from]) { S.peers[from].rings = d.rings; await idbSet('peers', 'all', S.peers); }
+
     S.msgs.push({ dir: 'in', from, intent: d.intent, payload: d.payload, wire, addr: contentAddress(wire).address });
     await idbSet('messages', 'log', S.msgs);
     await witness({ act: 'recv', from, intent: d.intent, addr: contentAddress(wire).address });
@@ -684,23 +1301,36 @@ function verifyLedger(chain) {
   // ── renderers ───────────────────────────────────────────────────────────────
   function renderPeers() {
     const rows = Object.entries(S.peers).map(([id, p]) =>
-      '<div class="item"><span><b>' + p.name + '</b> <span class="dim mono">' + (p.pub || '').slice(0, 16) + '…</span></span>' +
+      '<div class="item"><span><b>' + esc(p.name) + '</b>' + (id !== 'echo' && linkFor(p.name) ? ' <span class="pill g">connected</span>' : '') + ' <span class="dim mono">' + esc((p.pub || '').slice(0, 16)) + '…</span></span>' +
       '<span><span class="pill">bloom ' + (bloomHex(p.rings || [0,0,0,0,0,0,0]).hex || '?') + '</span> ' +
       '<span class="pill g">grant ' + (p.grant ? p.grant.scope.length + ' scopes · ' + (p.grant.budget - p.grant.spent) + ' left' : '—') + '</span></span></div>').join('');
-    $('peer-list').innerHTML = rows || '<div class="dim">no peers yet — the echo node answers on Messages, or connect one via WebRTC below</div>';
+    $('peer-list').innerHTML = rows || '<div class="dim">no one yet — connect a friend below, or practise with echo on Messages</div>';
     const sel = $('msg-to');
-    const options = ['echo', ...Object.keys(S.peers).filter((k) => k !== 'echo')];
-    if (S.rtc.ch && S.rtc.ch.readyState === 'open') options.push('rtc-peer');
-    sel.innerHTML = [...new Set(options)].map((o) => '<option value="' + o + '">' + o + '</option>').join('');
+    const prev = sel.value;
+    const links = openLinks().map((l) => l.name).filter(Boolean);
+    const opts = [{ v: 'echo', label: 'echo (practice — repeats you)' }]
+      .concat([...new Set(links)].map((n) => ({ v: n, label: n })))
+      .concat(S.groups.map((g) => ({ v: '#' + g, label: '#' + g + ' (group)' })));
+    sel.innerHTML = opts.map((o) => '<option value="' + esc(o.v) + '">' + esc(o.label) + '</option>').join('');
+    if (opts.some((o) => o.v === prev)) sel.value = prev;
+    else if (links.length) sel.value = links[0];
+  }
+  function renderGroups() {
+    $('group-chips').innerHTML = S.groups.map((g) =>
+      '<span class="pill g" style="margin-right:.35rem">#' + esc(g) + ' <a data-leave="' + esc(g) + '" style="cursor:pointer;color:var(--bad)" title="leave">×</a></span>').join('') ||
+      '<span class="dim" style="font-size:.85rem">no groups yet — make one and share its name</span>';
   }
   function renderChat() {
     $('chat').innerHTML = S.msgs.slice(-60).map((m) => {
       const name = intentName(m.intent).name || m.intent;
-      if (m.refused) return '<div class="msg"><span class="bad">refused</span> <span class="meta">from ' + m.from + ' · ' + name + ' · ' + m.refused + '</span></div>';
-      const who = m.dir === 'out' ? 'me → ' + m.to + ' (' + (m.via || '') + ')' : m.from + ' → me';
-      return '<div class="msg ' + (m.dir === 'out' ? 'me' : '') + '"><b>' + (m.payload || '(' + name + ')') + '</b><div class="meta">' + who + ' · ' + name + '</div><div class="wire">' + m.wire + '</div></div>';
+      if (m.refused) return '<div class="msg"><span class="bad">refused</span> <span class="meta">from ' + esc(m.from) + ' · ' + esc(name) + ' · ' + esc(m.refused) + '</span></div>';
+      if (m.system) return '<div class="msg"><span class="good">' + esc(m.payload) + '</span></div>';
+      const gtag = m.group ? '<span class="good">#' + esc(m.group) + '</span> · ' : '';
+      const who = m.dir === 'out' ? 'me → ' + esc(m.to) + ' (' + esc(m.via || '') + ')' : esc(m.from) + ' → me' + (m.group && m.via ? ' (heard via ' + esc(m.via) + ')' : '');
+      return '<div class="msg ' + (m.dir === 'out' ? 'me' : '') + '"><b>' + (m.payload !== undefined && m.payload !== '' ? esc(m.payload) : '(' + esc(name) + ')') + '</b><div class="meta">' + gtag + who + '<span class="plumb"> · ' + esc(name) + '</span></div><div class="wire">' + esc(m.wire) + '</div></div>';
     }).join('');
     $('chat').scrollTop = $('chat').scrollHeight;
+    $('chat-empty').hidden = S.msgs.some((m) => !m.system && !m.refused && m.from !== 'echo' && m.to !== 'echo');
   }
   function renderRings() {
     const names = ['R0 root', 'R1', 'R2', 'R3 seam', 'R4', 'R5', 'R6 crown'];
@@ -712,20 +1342,123 @@ function verifyLedger(chain) {
   }
   function renderWitness() {
     $('wit-list').innerHTML = S.chain.slice(-40).reverse().map((it) =>
-      '<div class="item"><span>#' + it.seq + ' ' + (it.entry.act || '?') + ' <span class="dim">' + JSON.stringify(it.entry).slice(0, 60) + '</span></span><span class="dim">' + it.hash.slice(0, 12) + '…</span></div>').join('') || '<div class="dim">nothing witnessed yet</div>';
+      '<div class="item"><span>#' + it.seq + ' ' + esc(it.entry.act || '?') + ' <span class="dim">' + esc(JSON.stringify(it.entry).slice(0, 60)) + '</span></span><span class="dim">' + esc(it.hash.slice(0, 12)) + '…</span></div>').join('') || '<div class="dim">nothing witnessed yet</div>';
   }
   function renderEco() {
     $('eco-balance').textContent = S.eco.balance + ' units';
-    $('eco-line').textContent = 'conserved: earned by witnessed work, spent by choice — never minted';
-    $('eco-list').innerHTML = S.eco.log.slice(-12).reverse().map((l) => '<div class="item"><span>' + l.what + '</span><span class="' + (l.d > 0 ? 'good' : 'bad') + '">' + (l.d > 0 ? '+' : '') + l.d + '</span></div>').join('');
+    $('eco-line').textContent = 'log work to earn 1 unit (self-attested for now — mesh-verified earning is v2) · spend only what you logged · spend at zero refuses';
+    $('eco-list').innerHTML = S.eco.log.slice(-12).reverse().map((l) => '<div class="item"><span>' + esc(l.what) + '</span><span class="' + (l.d > 0 ? 'good' : 'bad') + '">' + (l.d > 0 ? '+' : '') + l.d + '</span></div>').join('');
   }
   function renderCommons() {
-    $('commons-list').innerHTML = S.commons.slice(-20).reverse().map((c) => '<div class="item"><span>' + c.name + '</span><span class="pill g">receipt ' + c.addr.slice(0, 10) + '…</span></div>').join('') || '<div class="dim">nothing shared yet</div>';
+    $('commons-list').innerHTML = S.commons.slice(-20).reverse().map((c) => '<div class="item"><span>' + esc(c.name) + '</span><span class="pill g">receipt ' + esc(c.addr.slice(0, 10)) + '…</span></div>').join('') || '<div class="dim">nothing shared yet</div>';
   }
 
+  // ── the friendly face: install, share, and the door to the console ──────────
+  const LIVE = 'https://sjgant80-hub.github.io/meshos/';
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  let installPrompt = null;
+  window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installPrompt = e; });
+  window.addEventListener('appinstalled', () => { $('install-stat').innerHTML = '<span class="good">Installed &check; — find MeshOS on your home screen</span>'; });
+
+  function selectPane(name) {
+    document.querySelectorAll('#tabs button[data-p]').forEach((x) => x.classList.toggle('on', x.dataset.p === name));
+    document.querySelectorAll('.pane').forEach((x) => x.classList.toggle('on', x.id === 'p-' + name));
+  }
+  function showHome() { $('home').hidden = false; $('app').hidden = true; window.scrollTo(0, 0); }
+  function showApp(pane) {
+    $('home').hidden = true; $('app').hidden = false; lsSet('meshos-entered', '1');
+    try { if (!history.state || !history.state.app) history.pushState({ app: 1 }, ''); } catch (e) {}
+    if (pane) selectPane(pane); window.scrollTo(0, 0);
+  }
+  window.addEventListener('popstate', () => { if ($('app') && !$('app').hidden) showHome(); });
+  $('btn-open').addEventListener('click', () => showApp('messages'));
+  $('open-toolkit').addEventListener('click', (e) => { e.preventDefault(); showApp('nodes'); });
+  $('tab-home').addEventListener('click', showHome);
+
+  const inAppBrowser = /wv\)|FBAN|FBAV|Instagram|WhatsApp|Line\/|Snapchat|TikTok/i.test(navigator.userAgent);
+  $('btn-install').addEventListener('click', async () => {
+    if (standalone()) { $('install-stat').innerHTML = '<span class="good">You already have the app &check;</span>'; return; }
+    if (location.protocol === 'file:') {
+      $('install-stat').textContent = 'You’re running the shared file — it works as-is, right now. To put it on your home screen as a real app, open ' + LIVE + ' when you next have internet.';
+      return;
+    }
+    if (installPrompt) {
+      const p = installPrompt; installPrompt = null;
+      try {
+        await p.prompt();
+        const choice = await p.userChoice;
+        $('install-stat').innerHTML = choice.outcome === 'accepted'
+          ? '<span class="good">Installed &check; — find MeshOS on your home screen</span>'
+          : 'No worries — you can install later, or just use it right here in the browser.';
+      } catch (e) { $('install-stat').textContent = 'The install prompt didn’t open — try again, or just use MeshOS right here.'; }
+      return;
+    }
+    if (inAppBrowser) {
+      $('install-stat').textContent = 'This opened inside another app’s browser. Tap its menu (⋮ on Android, the share button on iPhone) and choose “Open in browser” or “Open in Safari” — then tap Get the app again.';
+      return;
+    }
+    if (isIOS) { $('ios-steps').hidden = false; $('install-stat').textContent = ''; return; }
+    $('install-stat').textContent = 'Nothing to install — you can use MeshOS right here. ' +
+      (/chrome|edg/i.test(navigator.userAgent) ? 'To make it an app: browser menu ⋮ → “Install MeshOS” (or an install icon in the address bar).' : 'For the app version, open this page in Chrome or Edge and tap Get the app.');
+  });
+
+  $('share-link').addEventListener('click', async () => {
+    const data = { title: 'MeshOS', text: 'Private messages for our people — no account, no server. Free:', url: LIVE };
+    if (navigator.share) { try { await navigator.share(data); $('share-stat').textContent = 'Shared.'; } catch (e) { /* cancelled */ } }
+    else { try { await navigator.clipboard.writeText(LIVE); $('share-stat').textContent = 'No share menu on this device — link copied instead. Paste it anywhere.'; } catch (e) { $('share-stat').textContent = LIVE; } }
+  });
+  $('share-copy').addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(LIVE); $('share-stat').textContent = 'Link copied — paste it to anyone.'; }
+    catch (e) { $('share-stat').textContent = LIVE; }
+  });
+  $('share-file').addEventListener('click', async () => {
+    try {
+      const res = await fetch(location.href.split('#')[0]);
+      const blob = new Blob([await res.text()], { type: 'text/html' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = 'meshos.html';
+      document.body.appendChild(a); a.click(); a.remove();
+      $('share-stat').textContent = 'Saved as meshos.html — send it over Bluetooth, AirDrop, Quick Share, email or a USB stick. The whole app is in that one file.';
+    } catch (e) { $('share-stat').textContent = 'Could not save from here — use “Copy the link” instead.'; }
+  });
+  if (location.protocol === 'file:') {
+    $('share-file').hidden = true;
+    $('bt-card').innerHTML = 'You already have the file — forward <b>meshos.html</b> itself over Bluetooth, AirDrop or Quick Share. To <b>keep</b> messages on a new phone, open the link once when online and install properly.';
+  }
+
+  function renderQR() {
+    try {
+      if (typeof qrMatrix !== 'function') throw new Error('no qr encoder');
+      const q = qrMatrix(LIVE);
+      if (!q.ok) throw new Error(q.why);
+      const quiet = 4, scale = Math.max(2, Math.floor(220 / (q.size + quiet * 2)));
+      const px = (q.size + quiet * 2) * scale;
+      const cv = $('qr'); cv.width = px; cv.height = px;
+      const ctx = cv.getContext('2d');
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, px, px);
+      ctx.fillStyle = '#0a0a08';
+      for (let y = 0; y < q.size; y++) for (let x = 0; x < q.size; x++)
+        if (q.modules[y * q.size + x]) ctx.fillRect((x + quiet) * scale, (y + quiet) * scale, scale, scale);
+    } catch (e) { $('qr-box').hidden = true; document.querySelector('.qr-cap').hidden = true; }
+  }
+
+  const setPlumbing = (on) => {
+    document.body.classList.toggle('plumbing', on);
+    $('plumbing-toggle').textContent = on ? 'hide technical details' : 'for tinkerers: show technical details';
+    lsSet('meshos-plumbing', on ? '1' : '0');
+  };
+  $('plumbing-toggle').addEventListener('click', () => setPlumbing(!document.body.classList.contains('plumbing')));
+
+  // land returning users straight in the app; first-timers — including the FIRST run of a fresh
+  // install — get the friendly face (standalone just drops Install and promotes Open to primary)
+  setPlumbing(lsGet('meshos-plumbing') === '1');
+  if (standalone()) { $('btn-install').hidden = true; $('btn-open').classList.remove('ghost'); $('btn-open').classList.add('act'); }
+  if (lsGet('meshos-entered') === '1') showApp('messages'); else showHome();
+
   // ── events ──────────────────────────────────────────────────────────────────
-  document.querySelectorAll('#tabs button').forEach((b) => b.addEventListener('click', () => {
-    document.querySelectorAll('#tabs button').forEach((x) => x.classList.remove('on'));
+  document.querySelectorAll('#tabs button[data-p]').forEach((b) => b.addEventListener('click', () => {
+    document.querySelectorAll('#tabs button[data-p]').forEach((x) => x.classList.remove('on'));
     document.querySelectorAll('.pane').forEach((x) => x.classList.remove('on'));
     b.classList.add('on');
     $('p-' + b.dataset.p).classList.add('on');
@@ -741,35 +1474,63 @@ function verifyLedger(chain) {
     }
   });
   $('msg-send').addEventListener('click', async () => {
+    if (!S.priv) { $('msg-stat').textContent = 'starting up — one moment'; return; }
     const text = $('msg-text').value.trim();
     const to = $('msg-to').value;
-    const intent = parseInt($('msg-intent').value, 10);
-    const r = await sendWire(to, intent, text || undefined);
-    $('msg-stat').textContent = r.ok ? 'sent via ' + r.via + ' · ' + r.wire.length + ' chars on the wire' : r.why;
-    $('msg-text').value = '';
+    const plumbing = document.body.classList.contains('plumbing');
+    if (!text && !plumbing) { $('msg-stat').textContent = 'Type a message first'; return; }
+    const intent = plumbing ? parseInt($('msg-intent').value, 10) : 0x01;
+    let r;
+    if (to.startsWith('#')) r = await sendGroup(to.slice(1), text);
+    else r = await sendWire(to, Number.isInteger(intent) ? intent : 0x01, text || undefined);
+    $('msg-stat').textContent = r.ok ? (plumbing ? 'sent via ' + r.via + ' · ' + r.wire.length + ' chars on the wire' : 'Sent ✓') : r.why;
+    if (r.ok) $('msg-text').value = '';
+  });
+  $('msg-text').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('msg-send').click(); });
+  $('group-join').addEventListener('click', async () => {
+    const g = $('group-name').value.trim().toLowerCase().replace(/[^\w\-]/g, '').slice(0, 32);
+    if (!g) { $('msg-stat').textContent = 'Give the group a name — letters, numbers, dashes'; return; }
+    if (!S.groups.includes(g)) {
+      S.groups.push(g);
+      await idbSet('capabilities', 'groups', S.groups);
+      await witness({ act: 'group-join', g });
+    }
+    $('group-name').value = '';
+    renderGroups(); renderPeers();
+    $('msg-to').value = '#' + g;
+    $('msg-stat').textContent = 'You’re in #' + g + ' — anyone connected to you (or a friend of a friend) who joins the same name will get your messages';
+  });
+  $('group-chips').addEventListener('click', async (e) => {
+    const g = e.target && e.target.dataset && e.target.dataset.leave;
+    if (!g) return;
+    S.groups = S.groups.filter((x) => x !== g);
+    await idbSet('capabilities', 'groups', S.groups);
+    await witness({ act: 'group-leave', g });
+    renderGroups(); renderPeers();
+  });
+  $('goto-connect').addEventListener('click', () => selectPane('nodes'));
+  $('my-name').addEventListener('change', async () => {
+    S.myName = $('my-name').value.trim().slice(0, 24) || S.myName;
+    $('my-name').value = S.myName;
+    await idbSet('identity', 'name', S.myName);
+    for (const l of openLinks()) await sendHello(l);   // re-introduce under the new name
   });
   $('peer-add').addEventListener('click', async () => {
     const name = $('peer-name').value.trim(), pub = $('peer-pub').value.trim().toLowerCase();
     if (!name || !/^[0-9a-f]{20,}$/.test(pub)) { $('peer-stat').textContent = 'need a name and a hex public key'; return; }
     S.peers[name] = { name, pub, algo: 'Ed25519', rings: [0,0,0,0,0,0,0], grant: makeGrant(name, ['hello', 'message', 'ack', 'ping', 'share', 'receipt'], 1000).grant };
     await idbSet('peers', 'all', S.peers);
-    await witness({ act: 'peer-add', name });
+    await witness({ act: 'peer-pin', name });
     renderPeers();
-    $('peer-stat').textContent = 'added ' + name + ' with an attenuated default grant';
+    $('peer-stat').textContent = 'pinned ' + name + ' — a hello claiming this name with a different key now gets a fresh name instead';
   });
-  $('rtc-offer').addEventListener('click', async () => { await rtcCreate('offer'); $('rtc-stat').textContent = 'creating offer… blob appears when ICE settles'; });
-  $('rtc-accept').addEventListener('click', async () => {
-    try {
-      const desc = JSON.parse($('rtc-blob').value);
-      const pc = await rtcCreate('answer');
-      await pc.setRemoteDescription(desc);
-      await pc.setLocalDescription(await pc.createAnswer());
-      $('rtc-stat').textContent = 'answer created — send the new blob back to the offerer';
-    } catch (e) { $('rtc-stat').textContent = 'paste a valid offer blob first'; }
-  });
-  $('rtc-finish').addEventListener('click', async () => {
-    try { await S.rtc.pc.setRemoteDescription(JSON.parse($('rtc-blob').value)); $('rtc-stat').textContent = 'answer applied — channel opening'; }
-    catch (e) { $('rtc-stat').textContent = 'paste the answer blob from your peer first'; }
+  $('rtc-offer').addEventListener('click', () => { makeInvite().catch(() => { $('rtc-stat').textContent = 'could not start a connection in this browser'; }); });
+  $('rtc-use').addEventListener('click', () => { usePasted(); });
+  $('rtc-copy').addEventListener('click', async () => {
+    const code = $('rtc-blob').value;
+    if (!code) { $('rtc-stat').textContent = 'nothing to copy yet — make an invite first'; return; }
+    try { await navigator.clipboard.writeText(code); $('rtc-stat').textContent = 'Copied ✓ — now send it to your friend over anything'; }
+    catch (e) { $('rtc-stat').textContent = 'select the code and copy it by hand'; }
   });
   $('com-share').addEventListener('click', async () => {
     const name = $('com-name').value.trim();
@@ -829,8 +1590,18 @@ function verifyLedger(chain) {
     S.grant = makeGrant('me', ['hello', 'message', 'ack', 'ping', 'share', 'request', 'offer', 'accept', 'receipt'], 100000).grant;
     $('grant-line').textContent = 'scopes: ' + S.grant.scope.join(', ') + ' · budget ' + S.grant.budget + ' · a peer you add gets an ATTENUATED grant — never more than yours';
     $('msg-intent').innerHTML = Object.entries(INTENTS).map(([c, n]) => '<option value="' + c + '"' + (Number(c) === 1 ? ' selected' : '') + '>' + n + '</option>').join('');
+    S.groups = (await idbGet('capabilities', 'groups')) || [];
+    S.myName = (await idbGet('identity', 'name')) || ('me-' + S.pubHex.slice(0, 4));
+    $('my-name').value = S.myName;
     if (S.chain.length === 0) await witness({ act: 'genesis', pub: S.pubHex.slice(0, 16) });
-    renderTransports(); renderPeers(); renderChat(); renderRings(); renderWitness(); renderEco(); renderCommons();
+    renderTransports(); renderPeers(); renderChat(); renderRings(); renderWitness(); renderEco(); renderCommons(); renderGroups();
+    renderQR();
+    if (!(await idbSet('bloom', 'probe', 1))) {
+      const w = document.createElement('div');
+      w.className = 'note';
+      w.innerHTML = '<strong>Heads up:</strong> this copy can’t save anything — your key and messages will vanish when you close it. It’s a taster: when you have internet, open <a href="' + LIVE + '" style="color:var(--accent)">the real thing</a> and install it properly.';
+      document.querySelector('.wrap').prepend(w);
+    }
     if ('serviceWorker' in navigator && location.protocol !== 'file:') { try { navigator.serviceWorker.register('sw.js'); } catch (e) {} }
     window.addEventListener('online', renderTransports);
     window.addEventListener('offline', renderTransports);

@@ -1,7 +1,7 @@
 // MeshOS service worker — the node works with NO network at all. Cache-first for the app shell;
 // anything else falls through to the network and, failing that, to the cached shell.
-const CACHE = 'meshos-v1';
-const SHELL = ['./', './index.html', './manifest.webmanifest', './icon.svg'];
+const CACHE = 'meshos-v3';
+const SHELL = ['./', './index.html', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
